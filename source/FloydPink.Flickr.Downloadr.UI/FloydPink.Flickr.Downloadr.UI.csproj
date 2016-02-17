@@ -72,11 +72,11 @@
       <SpecificVersion>False</SpecificVersion>
     </Reference>
     <Reference Include="Mono.Posix" />
-    <Reference Include="System.Web" />
     <Reference Include="System.Net" />
     <Reference Include="log4net">
       <HintPath>..\packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="System.Web" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="gtk-gui\gui.stetic">
@@ -118,6 +118,10 @@
     <Compile Include="gtk-gui\FloydPink.Flickr.Downloadr.UI.Widgets.PhotoWidget.cs" />
     <Compile Include="gtk-gui\FloydPink.Flickr.Downloadr.UI.Widgets.PreviewPhotoWidget.cs" />
     <Compile Include="gtk-gui\FloydPink.Flickr.Downloadr.UI.Widgets.SpinnerWidget.cs" />
+    <Compile Include="Windows\LandingWindow.cs" />
+    <Compile Include="gtk-gui\FloydPink.Flickr.Downloadr.UI.Windows.LandingWindow.cs" />
+    <Compile Include="Widgets\GridWidget.cs" />
+    <Compile Include="gtk-gui\FloydPink.Flickr.Downloadr.UI.Widgets.GridWidget.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
