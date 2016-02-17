@@ -1,33 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using FloydPink.Flickr.Downloadr.Logic.Interfaces;
-using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Model.Enums;
-using FloydPink.Flickr.Downloadr.Repository.Extensions;
+﻿namespace FloydPink.Flickr.Downloadr.Logic {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Interfaces;
+    using Model;
+    using Model.Enums;
+    using Repository.Extensions;
 
-namespace FloydPink.Flickr.Downloadr.Logic {
     public class DownloadLogic : IDownloadLogic {
         private static readonly Random Random = new Random((int) DateTime.Now.Ticks);
-        private string _currentTimestampFolder;
         private readonly IOriginalTagsLogic _originalTagsLogic;
+        private string _currentTimestampFolder;
 
         public DownloadLogic(IOriginalTagsLogic originalTagsLogic) {
-            _originalTagsLogic = originalTagsLogic;
+            this._originalTagsLogic = originalTagsLogic;
         }
 
-        public async Task Download(IEnumerable<Photo> photos, CancellationToken cancellationToken,
-                                   IProgress<ProgressUpdate> progress, Preferences preferences) {
-            await DownloadPhotos(photos, cancellationToken, progress, preferences);
+        public async Task Download(IEnumerable<Photo> photos, CancellationToken cancellationToken, IProgress<ProgressUpdate> progress,
+                                   Preferences preferences, Photoset photoset) {
+            await DownloadPhotos(photos, cancellationToken, progress, preferences, photoset);
         }
 
-        private async Task DownloadPhotos(IEnumerable<Photo> photos, CancellationToken cancellationToken,
-                                          IProgress<ProgressUpdate> progress, Preferences preferences) {
+        private async Task DownloadPhotos(IEnumerable<Photo> photos, CancellationToken cancellationToken, IProgress<ProgressUpdate> progress,
+                                          Preferences preferences, Photoset photoset) {
             var progressUpdate = new ProgressUpdate {
                 Cancellable = true,
                 OperationText = "Downloading photos...",
@@ -40,7 +41,7 @@ namespace FloydPink.Flickr.Downloadr.Logic {
             var photosList = photos as IList<Photo> ?? photos.ToList();
             var totalCount = photosList.Count();
 
-            var imageDirectory = CreateDownloadFolder(preferences.DownloadLocation);
+            var imageDirectory = CreateDownloadFolder(preferences.DownloadLocation, photoset);
 
             foreach (var photo in photosList) {
                 var photoUrl = photo.OriginalUrl;
@@ -61,7 +62,7 @@ namespace FloydPink.Flickr.Downloadr.Logic {
                 var photoWithPreferredTags = photo;
 
                 if (preferences.NeedOriginalTags) {
-                    photoWithPreferredTags = await _originalTagsLogic.GetOriginalTagsTask(photo);
+                    photoWithPreferredTags = await this._originalTagsLogic.GetOriginalTagsTask(photo);
                 }
 
                 var photoName = preferences.TitleAsFilename ? GetSafeFilename(photo.Title) : photo.Id;
@@ -98,19 +99,23 @@ namespace FloydPink.Flickr.Downloadr.Logic {
             }
         }
 
-        private DirectoryInfo CreateDownloadFolder(string downloadLocation) {
-            _currentTimestampFolder = string.Format("flickr-downloadr-{0}",
+        private DirectoryInfo CreateDownloadFolder(string downloadLocation, Photoset currentPhotoset) {
+            this._currentTimestampFolder = string.Format("flickr-downloadr{0}-{1}", GetDownloadFolderNameForPhotoset(currentPhotoset),
                 GetSafeFilename(DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")));
             var imageDirectory =
-                Directory.CreateDirectory(Path.Combine(downloadLocation, _currentTimestampFolder));
+                Directory.CreateDirectory(Path.Combine(downloadLocation, this._currentTimestampFolder));
             return imageDirectory;
+        }
+
+        private string GetDownloadFolderNameForPhotoset(Photoset photoset) {
+            return photoset.Type == PhotosetType.Album ? string.Format("-[{0}]", GetSafeFilename(photoset.Title)) : string.Empty;
         }
 
         private static string RandomString(int size) {
             // http://stackoverflow.com/a/1122519/218882
             var builder = new StringBuilder();
             for (var i = 0; i < size; i++) {
-                var ch = Convert.ToChar(Convert.ToInt32(Math.Floor(26 * Random.NextDouble() + 65)));
+                var ch = Convert.ToChar(Convert.ToInt32(Math.Floor(26 * Random.NextDouble() + 65), CultureInfo.InvariantCulture));
                 builder.Append(ch);
             }
 

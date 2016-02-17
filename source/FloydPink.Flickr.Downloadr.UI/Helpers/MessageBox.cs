@@ -1,9 +1,9 @@
-﻿using Gtk;
+﻿namespace FloydPink.Flickr.Downloadr.UI.Helpers {
+    using Gtk;
 
-namespace FloydPink.Flickr.Downloadr.UI.Helpers {
     public class MessageBox {
         public static ResponseType Show(Window window, string message, ButtonsType buttons, MessageType type) {
-            var md = new MessageDialog(window, DialogFlags.DestroyWithParent, type, buttons, message);
+            var md = new MessageDialog(window, DialogFlags.DestroyWithParent, type, buttons, false, message);
             var result = (ResponseType) md.Run();
             md.Destroy();
             return result;

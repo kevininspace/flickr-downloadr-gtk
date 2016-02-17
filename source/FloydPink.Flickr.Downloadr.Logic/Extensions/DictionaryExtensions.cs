@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Model.Constants;
+﻿namespace FloydPink.Flickr.Downloadr.Logic.Extensions {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using Model;
+    using Model.Constants;
+    using Model.Enums;
 
-namespace FloydPink.Flickr.Downloadr.Logic.Extensions {
     public static class DictionaryExtensions {
         private static readonly bool runningOnMono = Type.GetType("Mono.Runtime") != null;
 
@@ -22,26 +23,49 @@ namespace FloydPink.Flickr.Downloadr.Logic.Extensions {
             return null;
         }
 
-        public static PhotosResponse GetPhotosResponseFromDictionary(this Dictionary<string, object> dictionary) {
+        public static PhotosResponse GetPhotosResponseFromDictionary(this Dictionary<string, object> dictionary, bool isAlbum) {
+            var apiresponseCollectionName = isAlbum ? "photoset" : "photos";
             var photos = new List<Photo>();
             IEnumerable<Dictionary<string, object>> photoDictionary;
 
             if (runningOnMono) {
-                var photoListAsArrayList = (ArrayList) dictionary.GetSubValue("photos", "photo");
+                var photoListAsArrayList = (ArrayList) dictionary.GetSubValue(apiresponseCollectionName, "photo");
                 photoDictionary = photoListAsArrayList.Cast<Dictionary<string, object>>();
             } else {
-                var photoListAsIEnumerable = (IEnumerable<object>) dictionary.GetSubValue("photos", "photo");
+                var photoListAsIEnumerable = (IEnumerable<object>) dictionary.GetSubValue(apiresponseCollectionName, "photo");
                 photoDictionary = photoListAsIEnumerable.Cast<Dictionary<string, object>>();
             }
 
             photos.AddRange(photoDictionary.Select(BuildPhoto));
 
             return new PhotosResponse(
-                Convert.ToInt32(dictionary.GetSubValue("photos", "page")),
-                Convert.ToInt32(dictionary.GetSubValue("photos", "pages")),
-                Convert.ToInt32(dictionary.GetSubValue("photos", "perpage")),
-                Convert.ToInt32(dictionary.GetSubValue("photos", "total")),
+                int.Parse(dictionary.GetSubValue(apiresponseCollectionName, "page").ToString()),
+                int.Parse(dictionary.GetSubValue(apiresponseCollectionName, "pages").ToString()),
+                int.Parse(dictionary.GetSubValue(apiresponseCollectionName, "perpage").ToString()),
+                int.Parse(dictionary.GetSubValue(apiresponseCollectionName, "total").ToString()),
                 photos);
+        }
+
+        public static PhotosetsResponse GetPhotosetsResponseFromDictionary(this Dictionary<string, object> dictionary) {
+            var photosets = new List<Photoset>();
+            IEnumerable<Dictionary<string, object>> photosetDictionary;
+
+            if (runningOnMono) {
+                var photosetListAsArrayList = (ArrayList) dictionary.GetSubValue("photosets", "photoset");
+                photosetDictionary = photosetListAsArrayList.Cast<Dictionary<string, object>>();
+            } else {
+                var photosetListAsIEnumerable = (IEnumerable<object>) dictionary.GetSubValue("photosets", "photoset");
+                photosetDictionary = photosetListAsIEnumerable.Cast<Dictionary<string, object>>();
+            }
+
+            photosets.AddRange(photosetDictionary.Select(BuildPhotoset));
+
+            return new PhotosetsResponse(
+                int.Parse(dictionary.GetSubValue("photosets", "page").ToString()),
+                int.Parse(dictionary.GetSubValue("photosets", "pages").ToString()),
+                int.Parse(dictionary.GetSubValue("photosets", "perpage").ToString()),
+                int.Parse(dictionary.GetSubValue("photosets", "total").ToString()),
+                photosets);
         }
 
         public static IEnumerable<string> ExtractOriginalTags(this Dictionary<string, object> dictionary) {
@@ -67,7 +91,7 @@ namespace FloydPink.Flickr.Downloadr.Logic.Extensions {
                 dictionary.GetValue("owner").ToString(),
                 dictionary.GetValue("secret").ToString(),
                 dictionary.GetValue("server").ToString(),
-                Convert.ToInt32(dictionary.GetValue("farm")),
+                int.Parse(dictionary.GetValue("farm").ToString()),
                 dictionary.GetValue("title").ToString(),
                 Convert.ToBoolean(dictionary.GetValue("ispublic")),
                 Convert.ToBoolean(dictionary.GetValue("isfriend")),
@@ -86,6 +110,19 @@ namespace FloydPink.Flickr.Downloadr.Logic.Extensions {
                 dictionary.GetValue("url_c").ToString(),
                 dictionary.GetValue("url_l").ToString(),
                 dictionary.GetValue("url_o").ToString());
+        }
+
+        private static Photoset BuildPhotoset(Dictionary<string, object> dictionary) {
+            return new Photoset(dictionary.GetValue("id").ToString(),
+                dictionary.GetValue("primary").ToString(),
+                dictionary.GetValue("secret").ToString(),
+                dictionary.GetValue("server").ToString(),
+                int.Parse(dictionary.GetValue("farm").ToString()),
+                int.Parse(dictionary.GetValue("photos").ToString()),
+                int.Parse(dictionary.GetValue("videos").ToString()),
+                dictionary.GetSubValue("title").ToString(),
+                dictionary.GetSubValue("description").ToString(),
+                PhotosetType.Album, null);
         }
     }
 }

@@ -1,15 +1,15 @@
-﻿using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Repository;
-using NUnit.Framework;
+﻿namespace FloydPink.Flickr.Downloadr.UnitTests.RepositoryTests {
+    using Model;
+    using NUnit.Framework;
+    using Repository;
 
-namespace FloydPink.Flickr.Downloadr.UnitTests.RepositoryTests {
     [TestFixture]
     public class RepositoryTests {
         private TokenRepository _repository;
 
         [TestFixtureSetUp]
         public void SetUp() {
-            _repository = new TokenRepository();
+            this._repository = new TokenRepository();
         }
 
         private Token getNewAccessToken() {
@@ -19,16 +19,16 @@ namespace FloydPink.Flickr.Downloadr.UnitTests.RepositoryTests {
         [Test]
         public void WillDeleteAndNotGetToken() {
             var token = getNewAccessToken();
-            _repository.Save(token);
-            _repository.Delete();
-            token = _repository.Get();
+            this._repository.Save(token);
+            this._repository.Delete();
+            token = this._repository.Get();
             Assert.IsEmpty(token.TokenString);
             Assert.IsEmpty(token.Secret);
         }
 
         [Test]
         public void WillNotGetTokenWhenNoFileExists() {
-            var token = _repository.Get();
+            var token = this._repository.Get();
             Assert.IsEmpty(token.TokenString);
             Assert.IsEmpty(token.Secret);
         }
@@ -36,11 +36,11 @@ namespace FloydPink.Flickr.Downloadr.UnitTests.RepositoryTests {
         [Test]
         public void WillSaveAndGetToken() {
             var token = getNewAccessToken();
-            _repository.Save(token);
-            token = _repository.Get();
+            this._repository.Save(token);
+            token = this._repository.Get();
             Assert.AreEqual("token", token.TokenString);
             Assert.AreEqual("secret", token.Secret);
-            _repository.Delete();
+            this._repository.Delete();
         }
     }
 }

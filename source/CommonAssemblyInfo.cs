@@ -18,9 +18,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfigurationAttribute("Release")]
 [assembly: AssemblyCompanyAttribute("http://flickrdownloadr.com")]
 [assembly: AssemblyProductAttribute("flickr downloadr")]
-[assembly: AssemblyCopyrightAttribute("Copyright © 2012-2014 Haridas Pachuveetil")]
+[assembly: AssemblyCopyrightAttribute("Copyright © 2012-2015 Haridas Pachuveetil")]
 [assembly: AssemblyTrademarkAttribute("")]
 [assembly: AssemblyCultureAttribute("")]
-[assembly: AssemblyVersionAttribute("1.0.2.5")]
-[assembly: AssemblyFileVersionAttribute("1.0.2.5")]
+[assembly: AssemblyVersionAttribute("2.0.0.1")]
+[assembly: AssemblyFileVersionAttribute("2.0.0.1")]
 

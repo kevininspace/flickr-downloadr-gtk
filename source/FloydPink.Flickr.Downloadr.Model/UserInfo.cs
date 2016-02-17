@@ -1,8 +1,7 @@
-using System;
-using System.Globalization;
-using FloydPink.Flickr.Downloadr.Model.Constants;
-
 namespace FloydPink.Flickr.Downloadr.Model {
+    using System.Globalization;
+    using Constants;
+
     public class UserInfo {
         public string Id { get; set; }
         public bool IsPro { get; set; }
@@ -15,9 +14,11 @@ namespace FloydPink.Flickr.Downloadr.Model {
         public string MobileUrl { get; set; }
         public int PhotosCount { get; set; }
 
-        public string BuddyIconUrl {
-            get {
-                return Convert.ToInt32(IconServer) > 0
+        public string BuddyIconUrl
+        {
+            get
+            {
+                return int.Parse(IconServer) > 0
                     ? string.Format(AppConstants.BuddyIconUrlFormat,
                         IconFarm.ToString(CultureInfo.InvariantCulture), IconServer, Id)
                     : AppConstants.DefaultBuddyIconUrl;

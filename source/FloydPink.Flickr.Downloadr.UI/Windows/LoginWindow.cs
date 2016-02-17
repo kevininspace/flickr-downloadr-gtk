@@ -1,20 +1,20 @@
-﻿using System;
-using System.Diagnostics;
-using FloydPink.Flickr.Downloadr.Bootstrap;
-using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Presentation;
-using FloydPink.Flickr.Downloadr.Presentation.Views;
-using FloydPink.Flickr.Downloadr.UI.CachedImage;
-using FloydPink.Flickr.Downloadr.UI.Helpers;
-using FloydPink.Flickr.Downloadr.UI.Widgets;
-using Gtk;
-using Mono.Unix;
+﻿namespace FloydPink.Flickr.Downloadr.UI.Windows {
+    using System;
+    using System.Diagnostics;
+    using Bootstrap;
+    using CachedImage;
+    using Gtk;
+    using Helpers;
+    using Model;
+    using Mono.Unix;
+    using Presentation;
+    using Presentation.Views;
+    using Widgets;
 
-namespace FloydPink.Flickr.Downloadr.UI.Windows {
     public partial class LoginWindow : BaseWindow, ILoginView {
+        private readonly ILoginPresenter _presenter;
         private User _user;
         private SpinnerWidget spinner;
-        private readonly ILoginPresenter _presenter;
 
         public LoginWindow()
             : this(new User()) { }
@@ -30,8 +30,8 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
             AddSpinnerControl();
 
-            _presenter = Bootstrapper.GetPresenter<ILoginView, ILoginPresenter>(this);
-            _presenter.InitializeScreen();
+            this._presenter = Bootstrapper.GetPresenter<ILoginView, ILoginPresenter>(this);
+            this._presenter.InitializeScreen();
         }
 
         protected void OnDeleteEvent(object sender, DeleteEventArgs args) {
@@ -57,57 +57,42 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
         private void AddTooltips() {
             Log.Debug("AddTooltips");
-            buttonLogin.TooltipText = "Log in to flickr using OAuth";
-            buttonPrefs.TooltipText = "Update the Preferences";
-            buttonLogout.TooltipText = "Log out from the currently logged in account";
-            buttonContinue.TooltipText = "Browse and download the photos from the logged in account";
+            this.buttonLogin.TooltipText = "Log in to flickr using OAuth";
+            this.buttonPrefs.TooltipText = "Update the Preferences";
+            this.buttonLogout.TooltipText = "Log out from the currently logged in account";
+            this.buttonContinue.TooltipText = "Browse and download the photos from the logged in account";
         }
 
         private void AddSpinnerControl() {
             Log.Debug("AddSpinnerControl");
-            spinner = new SpinnerWidget {
+            this.spinner = new SpinnerWidget {
                 Name = "loginSpinner",
                 Cancellable = true,
                 Operation = "Please wait...",
                 Visible = false
             };
-            spinner.SpinnerCanceled +=
+            this.spinner.SpinnerCanceled +=
                 (object sender, EventArgs e) => { Application.Invoke(delegate { this.hboxLogin.Sensitive = true; }); };
-            vbox2.Add(spinner);
+            this.vbox2.Add(this.spinner);
 
-            var spinnerSlot = ((Box.BoxChild) (vbox2[spinner]));
+            var spinnerSlot = ((Box.BoxChild) (this.vbox2[this.spinner]));
             spinnerSlot.Position = 0;
             spinnerSlot.Expand = true;
         }
 
-        //		private void EditLogConfigClick(object sender, RoutedEventArgs e)
-        //		{
-        //			OpenInNotepad(Bootstrapper.GetLogConfigFile().FullName);
-        //		}
-        //
-        //		private void ViewLogClick(object sender, RoutedEventArgs e)
-        //		{
-        //			OpenInNotepad(Bootstrapper.GetLogFile().FullName);
-        //		}
-        //
-        //		private static void OpenInNotepad(string filepath)
-        //		{
-        //			Process.Start("notepad.exe", filepath);
-        //		}
-        //
         protected void buttonLoginClick(object sender, EventArgs e) {
             Log.Debug("buttonLoginClick");
-            _presenter.Login();
+            this._presenter.Login();
         }
 
         protected void buttonLogoutClick(object sender, EventArgs e) {
             Log.Debug("buttonLogoutClick");
-            _presenter.Logout();
+            this._presenter.Logout();
         }
 
         protected void buttonContinueClick(object sender, EventArgs e) {
             Log.Debug("buttonContinueClick");
-            _presenter.Continue();
+            this._presenter.Continue();
         }
 
         protected void buttonAboutClick(object sender, EventArgs e) {
@@ -125,10 +110,12 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
         protected Preferences Preferences { get; set; }
 
-        public User User {
-            get { return _user; }
-            set {
-                _user = value;
+        public User User
+        {
+            get { return this._user; }
+            set
+            {
+                this._user = value;
                 SetWelcomeLabel(value);
             }
         }
@@ -170,7 +157,7 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
                                });
         }
 
-        public void ShowSpinner(bool show) {
+        public override void ShowSpinner(bool show) {
             Log.Debug("ShowSpinner");
             Application.Invoke(delegate {
                                    this.hboxLogin.Sensitive = !show;
@@ -178,16 +165,16 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
                                });
         }
 
-        public void OpenBrowserWindow() {
+        public void OpenLandingWindow() {
             Log.Debug("OpenBrowserWindow");
-            var browserWindow = new BrowserWindow(User, Preferences);
-            browserWindow.Show();
+            var landingWindow = new LandingWindow(new Session(User, Preferences));
+            landingWindow.Show();
             Destroy();
         }
 
         public void OpenPreferencesWindow(Preferences preferences) {
             Log.Debug("OpenPreferencesWindow");
-            var preferencesWindow = new PreferencesWindow(User, preferences);
+            var preferencesWindow = new PreferencesWindow(new Session(User, preferences));
             preferencesWindow.Show();
             Destroy();
         }

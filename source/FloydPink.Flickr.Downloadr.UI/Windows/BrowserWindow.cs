@@ -1,51 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
-using System.Linq;
-using FloydPink.Flickr.Downloadr.Bootstrap;
-using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Model.Enums;
-using FloydPink.Flickr.Downloadr.Model.Extensions;
-using FloydPink.Flickr.Downloadr.Presentation;
-using FloydPink.Flickr.Downloadr.Presentation.Views;
-using FloydPink.Flickr.Downloadr.UI.Helpers;
-using FloydPink.Flickr.Downloadr.UI.Widgets;
-using Gtk;
+﻿namespace FloydPink.Flickr.Downloadr.UI.Windows {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+    using Bootstrap;
+    using Gtk;
+    using Helpers;
+    using Model;
+    using Model.Enums;
+    using Presentation;
+    using Presentation.Views;
+    using Widgets;
 
-namespace FloydPink.Flickr.Downloadr.UI.Windows {
     public partial class BrowserWindow : BaseWindow, IBrowserView {
-        private bool _doNotFireOnSelectionChanged;
-        private string _page;
-        private string _pages;
-        private string _perPage;
-        private IEnumerable<Photo> _photos;
-        private bool _photosListIsEmpty;
-        private string _total;
-        private SpinnerWidget spinner;
         private readonly IBrowserPresenter _presenter;
+        private IEnumerable<Photo> _photos;
+        private SpinnerWidget _spinner;
 
-        public BrowserWindow(User user, Preferences preferences) {
+        public BrowserWindow(Session session) {
             Log.Debug("ctor");
             Build();
 
             AddTooltips();
 
+            this.photosGrid.OnSelectionChanged += OnSelectionChanged;
+
             Title += VersionHelper.GetVersionString();
-            Preferences = preferences;
-            User = user;
+
+            User = session.User;
+            Preferences = session.Preferences;
+            CurrentPhotoset = session.SelectedPhotoset;
+
             AllSelectedPhotos = new Dictionary<string, Dictionary<string, Photo>>();
 
             AddSpinnerWidget();
 
-            _presenter = Bootstrapper.GetPresenter<IBrowserView, IBrowserPresenter>(this);
-            _presenter.InitializePhotoset();
+            this._presenter = Bootstrapper.GetPresenter<IBrowserView, IBrowserPresenter>(this);
+            this._presenter.InitializePhotoset();
         }
 
         public int SelectedPhotosCount { get { return AllSelectedPhotos.Values.SelectMany(d => d.Values).Count(); } }
 
-        public string SelectedPhotosCountText {
-            get {
+        public string SelectedPhotosCountText
+        {
+            get
+            {
                 var selectionCount = SelectedPhotosExist
                     ? SelectedPhotosCount.ToString(CultureInfo.InvariantCulture)
                     : string.Empty;
@@ -57,101 +56,78 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
         public bool SelectedPhotosExist { get { return SelectedPhotosCount != 0; } }
 
-        public bool AreAnyPagePhotosSelected {
+        public bool AreAnyPagePhotosSelected
+        {
             get { return Page != null && AllSelectedPhotos.ContainsKey(Page) && AllSelectedPhotos[Page].Count != 0; }
         }
 
-        public bool AreAllPagePhotosSelected {
-            get {
+        public bool AreAllPagePhotosSelected
+        {
+            get
+            {
                 return Photos != null &&
                        (!AllSelectedPhotos.ContainsKey(Page) || Photos.Count() != AllSelectedPhotos[Page].Count);
             }
         }
 
-        public string FirstPhoto {
-            get {
-                return (((Convert.ToInt32(Page) - 1) * Convert.ToInt32(PerPage)) + 1).
+        public string FirstPhoto
+        {
+            get
+            {
+                return (((int.Parse(Page) - 1) * int.Parse(PerPage)) + 1).
                     ToString(CultureInfo.InvariantCulture);
             }
         }
 
-        public string LastPhoto {
-            get {
-                var maxLast = Convert.ToInt32(Page) * Convert.ToInt32(PerPage);
-                return maxLast > Convert.ToInt32(Total) ? Total : maxLast.ToString(CultureInfo.InvariantCulture);
+        public string LastPhoto
+        {
+            get
+            {
+                var maxLast = int.Parse(Page) * int.Parse(PerPage);
+                return maxLast > int.Parse(Total) ? Total : maxLast.ToString(CultureInfo.InvariantCulture);
             }
         }
 
         public User User { get; set; }
         public Preferences Preferences { get; set; }
 
-        public IEnumerable<Photo> Photos {
-            get { return _photos; }
-            set {
-                _photos = value;
-                PropertyChanged.Notify(() => AreAllPagePhotosSelected);
+        public IEnumerable<Photo> Photos
+        {
+            get { return this._photos; }
+            set
+            {
+                this._photos = value;
                 UpdateUI();
                 Application.Invoke(delegate {
-                                       this._doNotFireOnSelectionChanged = true;
+                                       this.photosGrid.DoNotFireSelectionChanged = true;
                                        SelectAlreadySelectedPhotos();
-                                       this._doNotFireOnSelectionChanged = false;
+                                       this.photosGrid.DoNotFireSelectionChanged = false;
                                    });
             }
         }
 
         public IDictionary<string, Dictionary<string, Photo>> AllSelectedPhotos { get; set; }
-        public bool ShowAllPhotos { get { return togglebuttonShowAllPhotos.Active; } }
+        public Photoset CurrentPhotoset { get; set; }
+        public string Page { get; set; }
+        public string Pages { get; set; }
+        public string PerPage { get; set; }
+        public string Total { get; set; }
 
-        public string Page {
-            get { return _page; }
-            set {
-                _page = value;
-                PropertyChanged.Notify(() => Page);
-                PropertyChanged.Notify(() => AreAnyPagePhotosSelected);
-            }
-        }
-
-        public string Pages {
-            get { return _pages; }
-            set {
-                _pages = value;
-                PropertyChanged.Notify(() => Pages);
-            }
-        }
-
-        public string PerPage {
-            get { return _perPage; }
-            set {
-                _perPage = value;
-                PropertyChanged.Notify(() => PerPage);
-            }
-        }
-
-        public string Total {
-            get { return _total; }
-            set {
-                _total = value;
-                PropertyChanged.Notify(() => Total);
-                PropertyChanged.Notify(() => FirstPhoto);
-                PropertyChanged.Notify(() => LastPhoto);
-            }
-        }
-
-        public void ShowSpinner(bool show) {
+        public override void ShowSpinner(bool show) {
             Log.Debug("ShowSpinner");
             Application.Invoke(delegate {
                                    this.hboxButtons.Sensitive = !show;
                                    this.scrolledwindowPhotos.Visible = !show;
-                                   this.spinner.Visible = show;
+                                   this._spinner.Visible = show;
                                });
         }
 
         public void UpdateProgress(string percentDone, string operationText, bool cancellable) {
             Log.Debug("UpdateProgress");
             Application.Invoke(delegate {
-                                   this.spinner.Cancellable = cancellable;
-                                   this.spinner.Operation = operationText;
-                                   this.spinner.PercentDone = percentDone;
+                                   this._spinner.Cancellable = cancellable;
+                                   this._spinner.Operation = operationText;
+                                   this._spinner.PercentDone = percentDone;
                                });
         }
 
@@ -176,12 +152,6 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
                                });
         }
 
-        #region INotifyPropertyChanged Members
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        #endregion
-
         protected void OnDeleteEvent(object sender, DeleteEventArgs args) {
             Log.Debug("OnDeleteEvent");
             MainClass.Quit();
@@ -190,36 +160,34 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
         private void AddTooltips() {
             Log.Debug("AddTooltips");
-            buttonBack.TooltipText = "Close this window and go back to the login window";
-            togglebuttonShowAllPhotos.TooltipText =
-                "Click to toggle seeing all the photos (including those marked private) or only the public ones";
-            buttonSelectAll.TooltipText = "Select all the photos on this page";
-            buttonUnSelectAll.TooltipText = "Deselect all the photos on this page";
-            buttonFirstPage.TooltipText = "Go to the first page of photos";
-            buttonPreviousPage.TooltipText = "Go to the previous page of photos";
-            comboboxPage.TooltipText = "Select a page to quickly jump there";
-            buttonNextPage.TooltipText = "Go to the next page of photos";
-            buttonLastPage.TooltipText = "Go the last page of photos";
-            buttonDownloadSelection.TooltipText = "Download the selected photos from all pages";
-            buttonDownloadThisPage.TooltipText = "Download all the photos from this page";
-            buttonDownloadAllPages.TooltipText = "Download all the photos from all the pages";
+            this.buttonBack.TooltipText = "Close this window and go back to the photoset selection window";
+            this.buttonSelectAll.TooltipText = "Select all the photos on this page";
+            this.buttonUnSelectAll.TooltipText = "Deselect all the photos on this page";
+            this.buttonFirstPage.TooltipText = "Go to the first page of photos";
+            this.buttonPreviousPage.TooltipText = "Go to the previous page of photos";
+            this.comboboxPage.TooltipText = "Select a page to quickly jump there";
+            this.buttonNextPage.TooltipText = "Go to the next page of photos";
+            this.buttonLastPage.TooltipText = "Go the last page of photos";
+            this.buttonDownloadSelection.TooltipText = "Download the selected photos from all pages";
+            this.buttonDownloadThisPage.TooltipText = "Download all the photos from this page";
+            this.buttonDownloadAllPages.TooltipText = "Download all the photos from all the pages";
         }
 
         private void AddSpinnerWidget() {
             Log.Debug("AddSpinnerWidget");
-            spinner = new SpinnerWidget {
+            this._spinner = new SpinnerWidget {
                 Name = "browserSpinner",
                 Cancellable = true,
                 Operation = "Please wait...",
                 Visible = false
             };
-            spinner.SpinnerCanceled += (object sender, EventArgs e) => {
-                                           scrolledwindowPhotos.Visible = true;
-                                           hboxButtons.Sensitive = true;
-                                           _presenter.CancelDownload();
-                                       };
-            hboxSpinner.Add(spinner);
-            var spinnerSlot = ((Box.BoxChild) (hboxSpinner[spinner]));
+            this._spinner.SpinnerCanceled += (object sender, EventArgs e) => {
+                                                 this.scrolledwindowPhotos.Visible = true;
+                                                 this.hboxButtons.Sensitive = true;
+                                                 this._presenter.CancelDownload();
+                                             };
+            this.hboxSpinner.Add(this._spinner);
+            var spinnerSlot = ((Box.BoxChild) (this.hboxSpinner[this._spinner]));
             spinnerSlot.Position = 0;
             spinnerSlot.Expand = true;
         }
@@ -237,7 +205,7 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
         private void LoseFocus(Button element) {
             Log.Debug("LoseFocus");
             if (element.HasFocus) {
-                Focus = buttonBack;
+                Focus = this.buttonBack;
             }
         }
 
@@ -245,23 +213,25 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
             Log.Debug("ClearSelectedPhotos");
             AllSelectedPhotos.Clear();
             SetSelectionOnAllImages(false);
-            PropertyChanged.Notify(() => SelectedPhotosExist);
-            PropertyChanged.Notify(() => SelectedPhotosCountText);
         }
 
         private void UpdateSelectionButtons() {
             Log.Debug("UpdateSelectionButtons");
-            buttonSelectAll.Sensitive = AreAllPagePhotosSelected;
-            buttonUnSelectAll.Sensitive = AreAnyPagePhotosSelected;
+            this.buttonSelectAll.Sensitive = AreAllPagePhotosSelected;
+            this.buttonUnSelectAll.Sensitive = AreAnyPagePhotosSelected;
 
-            buttonDownloadSelection.Label = SelectedPhotosCountText;
-            buttonDownloadSelection.Sensitive = SelectedPhotosExist;
+            this.buttonDownloadSelection.Label = SelectedPhotosCountText;
+            this.buttonDownloadSelection.Sensitive = SelectedPhotosExist;
         }
 
         private void UpdateUI() {
             Log.Debug("UpdateUI");
             Application.Invoke(delegate {
                                    UpdateSelectionButtons();
+
+                                   var selectedPhotosetLabelColor = CurrentPhotoset.Type == PhotosetType.Album ? "red" : "gray";
+                                   this.labelSelectedPhotoset.LabelProp = string.Format("<span color=\"{0}\"><b>{1}</b></span>",
+                                       selectedPhotosetLabelColor, CurrentPhotoset.HtmlEncodedTitle);
 
                                    this.labelPhotos.Markup = string.Format("<small>{0} - {1} of {2} Photos</small>",
                                        FirstPhoto, LastPhoto, Total);
@@ -275,6 +245,8 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
                                    this.buttonPreviousPage.Sensitive = this.buttonFirstPage.Sensitive = Page != "1";
                                    this.buttonNextPage.Sensitive = this.buttonLastPage.Sensitive = Page != Pages;
 
+                                   this.buttonDownloadAllPages.Sensitive = Pages != "1";
+
                                    this.scrolledwindowPhotos.Vadjustment.Value = 0;
 
                                    var hasPhotos = Photos.Any();
@@ -282,117 +254,39 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
                                    hboxCenter.Sensitive = hasPhotos;
                                    hboxRight.Sensitive = hasPhotos;
                                });
-            SetupTheImageGrid(Photos);
+            this.photosGrid.Items = Photos;
         }
 
         #region PhotoGrid
 
-        private const int NumberOfPhotosInARow = 5;
-
         private void OnSelectionChanged(object sender, EventArgs e) {
             Log.Debug("OnSelectionChanged");
-            if (_doNotFireOnSelectionChanged) {
-                return;
-            }
-            var cachedImage = (PhotoWidget) sender;
+            var photoWidget = (PhotoWidget) sender;
 
             if (!AllSelectedPhotos.ContainsKey(Page)) {
                 AllSelectedPhotos[Page] = new Dictionary<string, Photo>();
             }
 
-            if (cachedImage.IsSelected) {
-                AllSelectedPhotos[Page].Add(cachedImage.Photo.Id, cachedImage.Photo);
+            if (photoWidget.IsSelected) {
+                AllSelectedPhotos[Page].Add(photoWidget.WidgetItem.Id, (Photo) photoWidget.WidgetItem);
             } else {
-                AllSelectedPhotos[Page].Remove(cachedImage.Photo.Id);
+                AllSelectedPhotos[Page].Remove(photoWidget.WidgetItem.Id);
             }
 
             UpdateSelectionButtons();
         }
 
-        private HBox AddImageToRow(HBox hboxPhotoRow, int j, Photo photo, string rowId) {
-            Log.Debug("AddImageToRow");
-            Box.BoxChild hboxChild;
-            if (photo != null) {
-                var imageCell = new PhotoWidget();
-                imageCell.Name = string.Format("{0}Image{1}", rowId, j);
-                imageCell.ImageUrl = photo.LargeSquare150X150Url;
-                imageCell.Photo = photo;
-                imageCell.SelectionChanged += OnSelectionChanged;
-                hboxPhotoRow.Add(imageCell);
-                hboxChild = ((Box.BoxChild) (hboxPhotoRow[imageCell]));
-            } else {
-                var dummyImage = new Image();
-                dummyImage.Name = string.Format("{0}Image{1}", rowId, j);
-                hboxPhotoRow.Add(dummyImage);
-                hboxChild = ((Box.BoxChild) (hboxPhotoRow[dummyImage]));
-            }
-            hboxPhotoRow.Homogeneous = true;
-            hboxChild.Position = j;
-            return hboxPhotoRow;
-        }
-
-        private void SetupTheImageRow(int i, IEnumerable<Photo> rowPhotos) {
-            Log.Debug("SetupTheImageRow");
-            var rowPhotosAsList = rowPhotos as IList<Photo> ?? rowPhotos.ToList();
-            var rowPhotosCount = rowPhotosAsList.Count();
-
-            var rowId = string.Format("hboxPhotoRow{0}", i);
-            var hboxPhotoRow = new HBox();
-            hboxPhotoRow.Name = rowId;
-            hboxPhotoRow.Spacing = 6;
-
-            for (var j = 0; j < NumberOfPhotosInARow; j++) {
-                if (j < rowPhotosCount) {
-                    hboxPhotoRow = AddImageToRow(hboxPhotoRow, j, rowPhotosAsList.ElementAt(j), rowId);
-                } else {
-                    hboxPhotoRow = AddImageToRow(hboxPhotoRow, j, null, rowId);
-                }
-            }
-
-            Application.Invoke(delegate {
-                                   this.vboxPhotos.Add(hboxPhotoRow);
-                                   var vboxChild = ((Box.BoxChild) (this.vboxPhotos[hboxPhotoRow]));
-                                   vboxChild.Position = i;
-                                   vboxChild.Padding = 10;
-                                   this.vboxPhotos.ShowAll();
-                               });
-        }
-
-        private void SetupTheImageGrid(IEnumerable<Photo> photos) {
-            Log.Debug("SetupTheImageGrid");
-            var photosAsList = photos as IList<Photo> ?? photos.ToList();
-            var photosCount = photosAsList.Count();
-            var numberOfRows = photosCount / NumberOfPhotosInARow;
-            if (photosCount % NumberOfPhotosInARow > 0) {
-                numberOfRows += 1; // add an additional row for remainder of the images that won't reach full row
-            }
-            numberOfRows = numberOfRows < 3 ? 3 : numberOfRows; // render a minimum of 3 rows
-
-            foreach (var child in vboxPhotos.Children) {
-                Application.Invoke(delegate { this.vboxPhotos.Remove(child); });
-            }
-
-            if (photosCount == 0) {
-                return;
-            }
-
-            for (var i = 0; i < numberOfRows; i++) {
-                var rowPhotos = photosAsList.Skip(i * NumberOfPhotosInARow).Take(NumberOfPhotosInARow);
-                SetupTheImageRow(i, rowPhotos);
-            }
-        }
-
         private void SetSelectionOnAllImages(bool selected) {
             Log.Debug("SetSelectionOnAllImages");
-            foreach (var box in vboxPhotos.AllChildren) {
+            foreach (var box in this.photosGrid.AllItems) {
                 var hbox = box as HBox;
                 if (hbox == null) {
                     continue;
                 }
-                foreach (var image in hbox.AllChildren) {
-                    var cachedImage = image as PhotoWidget;
-                    if (cachedImage != null) {
-                        cachedImage.IsSelected = selected;
+                foreach (var child in hbox.AllChildren) {
+                    var photoWidget = child as PhotoWidget;
+                    if (photoWidget != null) {
+                        photoWidget.IsSelected = selected;
                     }
                 }
             }
@@ -400,15 +294,15 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
         private void FindAndSelectPhoto(Photo photo) {
             Log.Debug("FindAndSelectPhoto");
-            foreach (var box in vboxPhotos.AllChildren) {
+            foreach (var box in this.photosGrid.AllItems) {
                 var hbox = box as HBox;
                 if (hbox == null) {
                     continue;
                 }
-                foreach (var image in hbox.AllChildren) {
-                    var cachedImage = image as PhotoWidget;
-                    if (cachedImage != null && cachedImage.Photo.Id == photo.Id) {
-                        cachedImage.IsSelected = true;
+                foreach (var child in hbox.AllChildren) {
+                    var photoWidget = child as PhotoWidget;
+                    if (photoWidget != null && photoWidget.WidgetItem.Id == photo.Id) {
+                        photoWidget.IsSelected = true;
                         return;
                     }
                 }
@@ -428,35 +322,33 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
 
         protected void buttonBackClick(object sender, EventArgs e) {
             Log.Debug("buttonBackClick");
-            var loginWindow = new LoginWindow {
-                User = User
-            };
-            loginWindow.Show();
+            var landingWindow = new LandingWindow(new Session(User, Preferences));
+            landingWindow.Show();
             Destroy();
         }
 
         protected async void buttonNextPageClick(object sender, EventArgs e) {
             Log.Debug("buttonNextPageClick");
             LoseFocus((Button) sender);
-            await _presenter.NavigateTo(PhotoPage.Next);
+            await this._presenter.NavigateTo(PhotoOrAlbumPage.Next);
         }
 
         protected async void buttonLastPageClick(object sender, EventArgs e) {
             Log.Debug("buttonLastPageClick");
             LoseFocus((Button) sender);
-            await _presenter.NavigateTo(PhotoPage.Last);
+            await this._presenter.NavigateTo(PhotoOrAlbumPage.Last);
         }
 
         protected async void buttonFirstPageClick(object sender, EventArgs e) {
             Log.Debug("buttonFirstPageClick");
             LoseFocus((Button) sender);
-            await _presenter.NavigateTo(PhotoPage.First);
+            await this._presenter.NavigateTo(PhotoOrAlbumPage.First);
         }
 
         protected async void buttonPreviousPageClick(object sender, EventArgs e) {
             Log.Debug("buttonPreviousPageClick");
             LoseFocus((Button) sender);
-            await _presenter.NavigateTo(PhotoPage.Previous);
+            await this._presenter.NavigateTo(PhotoOrAlbumPage.Previous);
         }
 
         protected void buttonSelectAllClick(object sender, EventArgs e) {
@@ -471,38 +363,29 @@ namespace FloydPink.Flickr.Downloadr.UI.Windows {
             SetSelectionOnAllImages(false);
         }
 
-        protected async void togglebuttonShowAllPhotosClick(object sender, EventArgs e) {
-            Log.Debug("togglebuttonShowAllPhotosClick");
-            var toggleButton = (ToggleButton) sender;
-            toggleButton.Label = toggleButton.Active ? "Show Only Public Photos" : "Show All Photos";
-
-            LoseFocus((Button) sender);
-            ClearSelectedPhotos();
-            await _presenter.InitializePhotoset();
-        }
-
         protected async void buttonDownloadSelectionClick(object sender, EventArgs e) {
             Log.Debug("buttonDownloadSelectionClick");
             LoseFocus((Button) sender);
-            await _presenter.DownloadSelection();
+            await this._presenter.DownloadSelection();
         }
 
         protected async void buttonDownloadThisPageClick(object sender, EventArgs e) {
             Log.Debug("buttonDownloadThisPageClick");
             LoseFocus((Button) sender);
-            await _presenter.DownloadThisPage();
+            await this._presenter.DownloadThisPage();
         }
 
         protected async void buttonDownloadAllPagesClick(object sender, EventArgs e) {
             Log.Debug("buttonDownloadAllPagesClick");
             LoseFocus((Button) sender);
-            await _presenter.DownloadAllPages();
+            await this._presenter.DownloadAllPages();
         }
 
         protected async void comboboxPageChange(object sender, EventArgs e) {
+            Log.Debug("comboboxPageChange");
             var jumpToPage = ((ComboBox) sender).ActiveText;
             if (jumpToPage != null && jumpToPage != Page) {
-                await _presenter.NavigateTo(int.Parse(jumpToPage));
+                await this._presenter.NavigateTo(int.Parse(jumpToPage));
             }
         }
 

@@ -1,19 +1,19 @@
-﻿using System.IO;
-using System.Linq;
-using FloydPink.Flickr.Downloadr.Logic.Interfaces;
-using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Presentation.Views;
+﻿namespace FloydPink.Flickr.Downloadr.Presentation {
+    using System.IO;
+    using System.Linq;
+    using Logic.Interfaces;
+    using Model;
+    using Views;
 
-namespace FloydPink.Flickr.Downloadr.Presentation {
     public class PreferencesPresenter : PresenterBase, IPreferencesPresenter {
         private readonly IPreferencesLogic _logic;
 
         public PreferencesPresenter(IPreferencesView view, IPreferencesLogic logic) {
-            _logic = logic;
+            this._logic = logic;
         }
 
         public void Save(Preferences preferences) {
-            _logic.SavePreferences(preferences);
+            this._logic.SavePreferences(preferences);
         }
 
         public string GetCacheFolderSize(string cacheLocation) {
@@ -27,7 +27,7 @@ namespace FloydPink.Flickr.Downloadr.Presentation {
         }
 
         public void EmptyCacheDirectory(string cacheLocation) {
-            _logic.EmptyCacheDirectory(cacheLocation);
+            this._logic.EmptyCacheDirectory(cacheLocation);
         }
 
         // Thank you, humbads - http://stackoverflow.com/a/11124118/218882

@@ -1,17 +1,17 @@
-﻿using System;
-using System.IO;
-using System.Net;
-using System.Reflection;
-using FloydPink.Flickr.Downloadr.Logic.Interfaces;
-using FloydPink.Flickr.Downloadr.Model;
-using FloydPink.Flickr.Downloadr.Repository;
+﻿namespace FloydPink.Flickr.Downloadr.Logic {
+    using System;
+    using System.IO;
+    using System.Net;
+    using System.Reflection;
+    using Interfaces;
+    using Model;
+    using Repository;
 
-namespace FloydPink.Flickr.Downloadr.Logic {
     public class UpdateCheckLogic : IUpdateCheckLogic {
         private readonly IRepository<Update> _repository;
 
         public UpdateCheckLogic(IRepository<Update> repository) {
-            _repository = repository;
+            this._repository = repository;
         }
 
         #region IUpdateCheckLogic implementation
@@ -19,7 +19,7 @@ namespace FloydPink.Flickr.Downloadr.Logic {
         public Update UpdateAvailable(Preferences preferences) {
             var currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
             Version latestVersion;
-            var update = _repository.Get();
+            var update = this._repository.Get();
             if (DateTime.Now.Subtract(TimeSpan.FromDays(1.0)) > update.LastChecked) {
                 var request = WebRequest.Create("http://flickrdownloadr.com/build.number");
                 var response = (HttpWebResponse) request.GetResponse();
@@ -32,7 +32,7 @@ namespace FloydPink.Flickr.Downloadr.Logic {
                 latestVersion = new Version(update.LatestVersion);
             }
             update.Available = latestVersion.CompareTo(currentVersion) > 0;
-            _repository.Save(update);
+            this._repository.Save(update);
             return update;
         }
 

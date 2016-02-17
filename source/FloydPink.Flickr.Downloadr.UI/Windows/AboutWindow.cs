@@ -1,18 +1,18 @@
-﻿using System;
-using System.Diagnostics;
-using FloydPink.Flickr.Downloadr.UI.Helpers;
-using Gtk;
+﻿namespace FloydPink.Flickr.Downloadr.UI.Windows {
+    using System;
+    using System.Diagnostics;
+    using Gtk;
+    using Helpers;
 
-namespace FloydPink.Flickr.Downloadr.UI.Windows {
     public partial class AboutWindow : BaseWindow {
         public AboutWindow() {
             Log.Debug("ctor");
             Build();
 
-            labelLink.TooltipText = "http://flickrdownloadr.com";
+            this.labelLink.TooltipText = "http://flickrdownloadr.com";
 
             Title += VersionHelper.GetVersionString();
-            labelVersion.LabelProp = string.Format("<big><big>flickr downloadr {0}</big></big>",
+            this.labelVersion.LabelProp = string.Format("<big><big>flickr downloadr {0}</big></big>",
                 VersionHelper.GetVersionString());
         }
 

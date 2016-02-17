@@ -1,20 +1,20 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Castle.DynamicProxy;
-using log4net;
-using ServiceStack.Text;
-
 namespace FloydPink.Flickr.Downloadr.Bootstrap {
+    using System;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Castle.DynamicProxy;
+    using log4net;
+    using ServiceStack.Text;
+
     public class LogInterceptor : IInterceptor {
         private readonly ILog _log;
 
         public LogInterceptor(ILog log) {
-            _log = log;
+            this._log = log;
         }
 
-        public ILog Log { get { return _log; } }
+        public ILog Log { get { return this._log; } }
 
         public void Intercept(IInvocation invocation) {
             if (Log.IsDebugEnabled) {
@@ -75,7 +75,7 @@ namespace FloydPink.Flickr.Downloadr.Bootstrap {
                 return "<null>";
             }
             var objtype = argument.GetType();
-            if (objtype == typeof (String) || objtype.IsPrimitive || !objtype.IsClass) {
+            if (objtype == typeof (string) || objtype.IsPrimitive || !objtype.IsClass) {
                 return argument.ToString();
             }
 
